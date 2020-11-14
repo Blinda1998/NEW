@@ -1,0 +1,477 @@
+---
+title: "Project 2"
+author: "Blinda Tian"
+date: "11/1/2020"
+output: word_document
+editor_options: 
+  chunk_output_type: inline
+---
+
+# Open File
+datainput 11 days
+
+```{r}
+library(jsonlite)
+
+dat_1 <- read_json('~/Downloads/gps/20200818114606.geojson')
+dat_1 <- dat_1$features
+dat_2 <- read_json('~/Downloads/gps/20200819132607.geojson')
+dat_2 <- dat_2$features
+dat_3 <- read_json('~/Downloads/gps/20200820151044.geojson')
+dat_3 <- dat_3$features
+dat_4 <- read_json('~/Downloads/gps/20200821111447.geojson')
+dat_4 <- dat_4$features
+dat_5 <- read_json('~/Downloads/gps/20200824130857.geojson')
+dat_5 <- dat_5$features
+dat_6 <- read_json('~/Downloads/gps/20200825121346.geojson')
+dat_6 <- dat_6$features
+dat_7 <- read_json('~/Downloads/gps/20200826131614.geojson') 
+dat_7 <- dat_7$features
+dat_8 <- read_json('~/Downloads/gps/20200827113234.geojson')
+dat_8 <- dat_8$features
+dat_9 <- read_json('~/Downloads/gps/20200828122627.geojson')
+dat_9 <- dat_9$features
+dat_10 <- read_json('~/Downloads/gps/20200828130816.geojson')
+dat_10 <- dat_10$features
+dat_11 <- read_json('~/Downloads/gps/20200831115147.geojson')
+dat_11 <- dat_11$features
+
+```
+
+
+
+# Open and Conveetion  data
+1. variables in file include longitude & latitude , time(UTM), distance, time_long, accuracy, altitude, bearing, speed
+2. function to grab time, longitude, latitude
+3. function to remove dupliacates, then reorder time 
+4. function to covert UTM and timestamp
+5. function to distance matrix between each stops
+6. function to time difference (between two records) timetravel from start time, all in secs and speed
+7  add days number (infact  data 9 and data 10 is on the Same day)
+
+
+```{r setup, include=FALSE}
+
+
+# variables in file
+head(dat_1[['features']], 1) # variables: longitude & latitude , time(UTM), distance, time_long, accuracy, altitude, bearing, speed
+
+
+
+# function to grab time, longitude, latitude, speed
+data_grab <- function(dat_1){
+  time <- c()
+  latitude <- c()
+  longitude <- c()
+  for (i in 1:length(dat_1)){
+  time[i] <- dat_1[[i]][["properties"]][["time"]]
+  latitude[i]  <- dat_1[[i]][["geometry"]][["coordinates"]][[2]]
+  longitude[i]  <- dat_1[[i]][["geometry"]][["coordinates"]][[1]]
+  }
+  dat_1 <- data.frame(time, latitude, longitude)
+  return(dat_1) 
+}
+
+dat_1 <- data_grab(dat_1)
+dat_2 <- data_grab(dat_2)
+dat_3 <- data_grab(dat_3)
+dat_4 <- data_grab(dat_4)
+dat_5 <- data_grab(dat_5)
+dat_6 <- data_grab(dat_6)
+dat_7 <- data_grab(dat_7)
+dat_8 <- data_grab(dat_8)
+dat_9 <- data_grab(dat_9)
+dat_10 <- data_grab(dat_10)
+dat_11 <- data_grab(dat_11)
+
+
+# function to remove dupliacates and reorder time 
+library(tidyverse)
+
+duplicate_out <- function(dat_1){
+
+dat_1 <- dat_1 %>% distinct(dat_1$longitude,dat_1$latitude, .keep_all = TRUE)
+dat_1 <- dat_1[,c("time","longitude","latitude")]
+dat_1 <- dat_1[order(dat_1$time),] # reordered based on time
+return (dat_1)
+}
+
+dat_1 <- duplicate_out(dat_1)
+dat_2 <- duplicate_out(dat_2)
+dat_3 <- duplicate_out(dat_3)
+dat_4 <- duplicate_out(dat_4)
+dat_5 <- duplicate_out(dat_5)
+dat_6 <- duplicate_out(dat_6)
+dat_7 <- duplicate_out(dat_7)
+dat_8 <- duplicate_out(dat_8)
+dat_9 <- duplicate_out(dat_9)
+dat_10 <- duplicate_out(dat_10)
+dat_11 <- duplicate_out(dat_11)
+
+
+# function to covert UTM and time
+library("sp")
+convert_umt <- function(dat_1){
+ 
+  spat_df <- c()
+  spat_df <- SpatialPointsDataFrame(coords=dat_1[, c("longitude", "latitude")],
+                                  data=dat_1['time'],   # This needs to be a data frame
+                                  proj4string=CRS("+proj=longlat +datum=WGS84")) 
+  
+  
+  utm_df <- c()
+  utm_df <- spTransform(spat_df, CRSobj = "+proj=utm +zone=12 +datum=WGS84") 
+  utm_coords <- coordinates(utm_df)
+  dat_1["UTM"] <- utm_coords
+  return(dat_1)
+}
+
+dat_1<- convert_umt(dat_1)
+dat_2 <- convert_umt(dat_2)
+dat_3 <- convert_umt(dat_3)
+dat_4 <- convert_umt(dat_4)
+dat_5 <- convert_umt(dat_5)
+dat_6 <- convert_umt(dat_6)
+dat_7 <- convert_umt(dat_7)
+dat_8 <- convert_umt(dat_8)
+dat_9 <- convert_umt(dat_9)
+dat_10 <- convert_umt(dat_10)
+dat_11 <- convert_umt(dat_11)
+
+
+
+# function to distance matrix between each stops
+library("fields")
+library("Imap")
+
+
+distance <- function(dat_1){
+dist_dat1 <- sp::spDists(dat_1)
+dim(dist_dat1)
+dist_dat1[1:5, 1:5] 
+
+dat_1["Distance"]<- c(NA, dist_dat1[row(dist_dat1) == col(dist_dat1) + 1]) # distance between two spots over time in meters
+
+return(dat_1)
+}
+dat_1 <- distance(dat_1)
+dat_2 <- distance(dat_2)
+dat_3 <- distance(dat_3)
+dat_4 <- distance(dat_4)
+dat_5 <- distance(dat_5)
+dat_6 <- distance(dat_6)
+dat_7 <- distance(dat_7)
+dat_8 <- distance(dat_8)
+dat_9 <- distance(dat_9)
+dat_10 <- distance(dat_10)
+dat_11 <- distance(dat_11)
+
+
+
+
+# function to time difference (between two records) timetravel from start time, all in secs and speed
+
+time_diff <- function(dat_1){
+time_1  <- dat_1$time
+time_1 <- as.POSIXct(time_1, tz = "UTC", "%Y-%m-%dT%H:%M:%OS")
+diff_time_1 <- c()
+Timetravel <- c()
+
+for(i in 1:length(time_1)){
+ Timetravel[i] <- difftime( time_1[i], time_1[1],units = c("secs"))}
+
+for(i in 1:length(time_1)-1){
+  diff_time_1[i+1] <- Timetravel[i+1]-Timetravel[i]
+  
+}
+dat_1["Time_diff"] <- c(diff_time_1)
+dat_1["Speed"]<- c( dat_1$Distance/dat_1$Time_diff)
+dat_1["Timetravel"] <- Timetravel
+return(dat_1)
+}
+
+dat_1 <- time_diff(dat_1)
+dat_2 <- time_diff(dat_2)
+dat_3 <- time_diff(dat_3)
+dat_4 <- time_diff(dat_4)
+dat_5 <- time_diff(dat_5)
+dat_6 <- time_diff(dat_6)
+dat_7 <- time_diff(dat_7)
+dat_8 <- time_diff(dat_8)
+dat_9 <- time_diff(dat_9)
+dat_10 <- time_diff(dat_10)
+dat_11 <- time_diff(dat_11)
+
+
+
+
+
+
+
+
+
+# add days number
+dat_1["Day"] <- 1
+dat_2["Day"] <- 2
+dat_3["Day"] <- 3
+dat_4["Day"] <- 4
+dat_5["Day"] <- 5
+dat_6["Day"] <- 6
+dat_7["Day"] <- 7
+dat_8["Day"] <- 8
+dat_9["Day"] <- 9
+dat_10["Day"] <- 9  # data 9 and data 10 Same day
+dat_11["Day"] <- 11
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+# Data Summarization
+Timestamp_count
+Duration
+Start
+Pause
+Slocal
+Plocal
+Slocal
+Plocal
+startlong
+startlat
+
+```{r}
+
+
+# data summarization 11days 
+dat_sum <- list(dat_1,dat_2,dat_3,dat_4,dat_5,dat_6,dat_7,dat_8,dat_9,dat_10,dat_11)
+
+dat_summarize <- c()
+Timestamp_count <- c()
+Duration <-c()
+for(i in 1:length(dat_sum)){
+  Timestamp_count[i] <- length(dat_sum[[i]][["time"]])
+  Duration[i] <- sum(dat_sum[[i]]$Time_diff,na.rm=TRUE)
+}
+data_summarize <- data.frame(Timestamp_count,Duration)
+data_summarize
+
+
+# Time Start and Pause
+
+library("countytimezones")
+summary_grab <- function(dat_1){
+  dat1_s <- format(as.POSIXct(dat_1$time[1], tz = "UTC","%Y-%m-%dT%H:%M:%OS"),'%A, %B %d, %Y %H:%M:%S') #to UTM
+  local_t <- calc_single_datetime(as.POSIXct(dat_1$time[1], tz = "UTC","%Y-%m-%dT%H:%M:%OS"), tz = "MST") # to local time (MST)
+  dat1_p <- format(as.POSIXct(tail(dat_1$time,1), tz = "UTC","%Y-%m-%dT%H:%M:%OS"),'%A, %B %d, %Y %H:%M:%S') #to UTM 
+  local_p<- calc_single_datetime(as.POSIXct(tail(dat_1$time,1), tz = "UTC","%Y-%m-%dT%H:%M:%OS"), tz = "MST") # to local time (MST)
+
+# start location and stop location
+  long_s <- (dat_1$longitude[1])
+  long_p <- tail(dat_1$longitude,1)
+  lat_s <- (dat_1$latitude[1])
+  lat_p <- tail(dat_1$latitude,1)
+  # return 
+    return(c(dat1_s,local_t,dat1_p,local_p,long_s,lat_s,long_p,lat_p))
+}
+
+dat1_s<- summary_grab(dat_1)
+dat2_s<- summary_grab(dat_2)
+dat3_s<- summary_grab(dat_3)
+dat4_s<- summary_grab(dat_4)
+dat5_s<- summary_grab(dat_5)
+dat6_s<- summary_grab(dat_6)
+dat7_s<- summary_grab(dat_7)
+dat8_s<- summary_grab(dat_8)
+dat9_s<- summary_grab(dat_9)
+dat10_s<- summary_grab(dat_10)
+dat11_s<- summary_grab(dat_11)
+
+
+
+data_summarize$Start <- c(dat1_s[1],dat2_s[1],dat3_s[1],dat4_s[1],dat5_s[1],dat6_s[1],dat7_s[1],dat8_s[1],dat9_s[1],dat10_s[1],dat11_s[1])
+data_summarize$Slocal <- c(dat1_s[2],dat2_s[2],dat3_s[2],dat4_s[2],dat5_s[2],dat6_s[2],dat7_s[2],dat8_s[2],dat9_s[2],dat10_s[2],dat11_s[2])
+data_summarize$Pause<- c(dat1_s[3],dat2_s[3],dat3_s[3],dat4_s[3],dat5_s[3],dat6_s[3],dat7_s[3],dat8_s[3],dat9_s[3],dat10_s[3],dat11_s[3])
+data_summarize$Plocal <- c(dat1_s[4],dat2_s[4],dat3_s[4],dat4_s[4],dat5_s[4],dat6_s[4],dat7_s[4],dat8_s[4],dat9_s[4],dat10_s[4],dat11_s[4])
+
+data_summarize$startlong <-c(dat1_s[5],dat2_s[5],dat3_s[5],dat4_s[5],dat5_s[5],dat6_s[5],dat7_s[5],dat8_s[5],dat9_s[5],dat10_s[5],dat11_s[5])
+
+data_summarize$startlat <-c(dat1_s[6],dat2_s[6],dat3_s[6],dat4_s[6],dat5_s[6],dat6_s[6],dat7_s[6],dat8_s[6],dat9_s[6],dat10_s[6],dat11_s[6])
+data_summarize
+
+
+```
+
+
+
+
+
+
+
+
+
+
+# Description of data with visualization
+1. plot locations in the past two weeks (days diff cols )
+2. spped over time 
+
+
+
+
+```{r}
+
+dat_sum2 <- rbind(dat_1,dat_2,dat_3,dat_4,dat_5,dat_6,dat_7,dat_8,dat_9,dat_10,dat_11)
+
+# travel distance from the initial coordinates 
+
+
+
+# All records in 10days
+library(ggplot2)
+qplot(dat_sum2$longitude, dat_sum2$latitude, colour =  dat_sum2$Day,
+      xlab="Longitude", ylab="Latitude", main="Coordinates in two weeks data")
+
+
+
+# Zoom in to look at records, without 8/27 coordinates
+library(ggplot2)
+qplot(dat_sum2$longitude[dat_sum2$Day!=7],
+      dat_sum2$latitude[dat_sum2$Day!=7],
+      colour=dat_sum2$Day[dat_sum2$Day!=7],
+      xlab="Longitude",ylab="Latitude", main="Without 8/27")
+
+
+
+
+# Speed 
+par(2,4)
+
+hist(dat_sum2$Speed)
+boxplot(dat_sum2$Speed)
+  # take out stationary (<0),  extreme value (>30), and target speed will be 1-7
+  #placed within 5 meters and 10 seconds to my position --> target walking & cycling speeed
+
+
+dat_sum3 <-dat_sum2[!dat_sum2$Speed>=7,] 
+dat_sum3 <- dat_sum3[!dat_sum3$Speed<=1,]
+
+library(ggplot2)
+p <- dat_sum3 %>%
+  ggplot( aes(x=Timetravel, y=speed)) +
+    geom_area(fill="#69b3a2", alpha=0.5) +
+    geom_line(color="#69b3a2") +
+    ylab("Speed Over Time") 
+
+plot(dat_sum3$Speed, dat_sum3$Timetravel)
+
+
+
+#Bomb Place : 
+
+
+
+
+```
+
+
+# Model
+Bomb Place : 
+placed within 5 meters and 10 seconds to my position --> target walking & cycling speeed
+
+take out 8/27 
+```{r}
+
+
+# take out day 7
+dat_sum3 <-dat_sum3[!dat_sum3$Day==7,] 
+
+dim(dat_sum3) # 2923  points
+
+
+#
+m1 <- lm( latitude ~ longitude + Timetravel , data = dat_sum3)
+m1_predict <- predict(m1, newdata = dat_sum3, interval = "confidence")
+
+
+dat_sum3$y_hat <- m1_predict[,1]
+dat_sum3$y_lwr <- m1_predict[,2]
+dat_sum3$y_upr <- m1_predict[,3]
+
+plot(dat_sum3$longitude,dat_sum3$y_hat )
+
+ggplot(data=dat_sum3, aes(longitude, latitude)) + 
+  geom_point(col="steelblue", size=2) + 
+  geom_line(aes(longitude, y_hat), col="red") +
+  geom_ribbon(aes(ymin=y_lwr, ymax=y_upr), fill="magenta", alpha=.25) +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
+        panel.background = element_blank(), axis.line = element_line(colour = "black"))
+
+
+plot(m1$residuals)
+acf(m1$residuals)
+# The Deviance Residuals: shows us the variation in how far away our observations are from the predicted values. Observations with a deviance residual in excess of two may indicate lack of fit.
+
+summary.lm(m1)
+
+
+
+par(mfrow = c(2, 2))
+plot(m1)
+
+
+# check whether there is any residual spatial autocorrelation?
+
+
+
+```
+
+
+
+
+
+
+
+
+# Model validation
+Cross Validation
+validate the model with some independent data.
+Typically, we do this by removing a 20%  of the data to act as a validation dataset, fitting the model on the remaining 80% and then predicting to the validation set. 
+
+```{r}
+# take 20% to act as validation set
+dim(dat_sum3)
+set.seed(1)
+validation_rows <- sample(1:nrow(dat_sum3), 2923 *0.2)
+dat_sum3_train <- dat_sum3[-validation_rows,] # 80%
+dat_sum3_valid <- dat_sum3[validation_rows,] #20%
+
+# Fit model using 80%
+
+
+m1_validation <- lm( latitude ~ longitude + Timetravel , data = dat_sum3_train)
+
+predictions_validation <- -1.324103e+02-1.572759e+00*dat_sum3_valid$longitude+5.623e-08  *dat_sum3_valid$Timetravel
+
+
+# Calculate mse
+sqrt( mean( (dat_sum3_valid$latitude-predictions_validation)^2 , na.rm = TRUE ) )
+
+
+#mse(dat_sum3_valid$latitude,predictions_validation,na.rm = TRUE)
+ggplot() + geom_point(aes(dat_sum3_valid$longitude,predictions_validation),col="red") + geom_point(aes( dat_sum3_valid$longitude,dat_sum3_valid$latitude),col="Blue") 
+
+
+
+
+```
+
+
