@@ -1,0 +1,56 @@
+---
+title: "Bomb Plan"
+output: html_notebook
+---
+Bomb Plan
+```{r}
+
+# Open data 
+library(jsonlite)
+dat_test1 <- read_json('~/Downloads/test_GPS/20200901112100.geojson')
+dat_test1 <- dat_test1$features
+dat_test2 <- read_json('~/Downloads/test_GPS/20200902125611.geojson')
+dat_test2 <- dat_test2$features
+dat_test3 <- read_json('~/Downloads/test_GPS/20200903110618.geojson')
+dat_test3 <- dat_test3$features
+dat_test4 <- read_json('~/Downloads/test_GPS/20200908081420.geojson')
+dat_test4 <- dat_test4$features
+dat_test5 <- read_json('~/Downloads/test_GPS/20200910070926.geojson')
+dat_test5 <- dat_test5$features
+dat_test6 <- read_json('~/Downloads/test_GPS/20200914101156.geojson')
+dat_test6 <- dat_test6$features
+
+data_grab <- function(dat_test1){
+  time <- c()
+  latitude <- c()
+  longitude <- c()
+  for (i in 1:length(dat_test1)){
+  time[i] <- dat_test1[[i]][["properties"]][["time"]]
+  latitude[i]  <- dat_test1[[i]][["geometry"]][["coordinates"]][[2]]
+  longitude[i]  <- dat_test1[[i]][["geometry"]][["coordinates"]][[1]]
+  }
+  dat_test1 <- data.frame(time, latitude, longitude)
+  return(dat_test1) 
+}
+
+dat_test1 <- data_grab(dat_test1) # 2020-09-01 (T)
+dat_test2 <- data_grab(dat_test2) # 2020-09-02 (w) omit 
+dat_test3 <- data_grab(dat_test3) # 2020-09-03 (Th)
+dat_test4 <- data_grab(dat_test4) #2020-09-08 (T)
+dat_test5 <- data_grab(dat_test5) # 2020-09-10 (Th)
+dat_test6 <- data_grab(dat_test6) #2020-09-14 (M)
+
+
+sample(5,1) # Thursday 
+
+sample(10000:20000, 1) # 19038s = traveltime
+
+Timetravel <- 19038
+# Find out the past Thursday longitude around 19038 travel time, the corresponding longitude is -114.0705
+longitude <- -114.0705
+
+predict_lat <- -1.315e+02 -1.565e+00  *longitude + 5.737e-08  *Timetravel
+
+predict_lat
+```
+
